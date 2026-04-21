@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+	.page-container {
+		@apply px-6 max-w-7xl mx-auto;
+	}
+
+	.page-panel {
+		@apply bg-surface-container-low/50 rounded-xl p-4;
+	}
+
+	.page-title {
+		@apply text-2xl font-black font-headline text-primary;
+	}
+
+	.page-subtitle {
+		@apply text-sm text-on-surface-variant mt-1;
+	}
+
+	.section-title {
+		@apply text-3xl font-black text-primary font-headline mb-2;
+	}
+
+	.product-grid-unified {
+		@apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8;
+	}
+
+	.product-card-unified {
+		@apply group bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-transform duration-300 hover:-translate-y-2;
+	}
+
+	.surface-input {
+		@apply rounded-xl border-outline-variant bg-white;
+	}
+
+	.btn-primary-unified {
+		@apply px-5 py-2 rounded-full bg-primary text-white font-bold hover:bg-primary-container transition-colors;
+	}
+
+	.btn-outline-unified {
+		@apply px-5 py-2 rounded-full border border-outline-variant font-bold hover:bg-surface-container-high transition-colors;
+	}
+}
