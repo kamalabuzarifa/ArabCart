@@ -20,9 +20,10 @@
         <div class="flex flex-col items-center gap-4 rounded-2xl bg-surface-container-low p-5">
             <div class="relative">
                 @if ($user->avatar_url)
-                    <img src="{{ $user->avatar_url }}" alt="صورة الحساب" class="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-md" />
+                    <img id="avatar-preview" src="{{ $user->avatar_url }}" alt="صورة الحساب" class="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-md" />
                 @else
-                    <div class="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-md">
+                    <img id="avatar-preview" src="" alt="صورة الحساب" class="hidden w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-md" />
+                    <div id="avatar-fallback" class="w-24 h-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-md">
                         {{ mb_substr($user->name, 0, 1) }}
                     </div>
                 @endif
@@ -30,7 +31,8 @@
 
             <div class="w-full">
                 <x-input-label for="avatar" :value="__('الصورة الشخصية')" class="text-on-surface text-right" />
-                <input id="avatar" name="avatar" type="file" accept="image/*" class="mt-1 block w-full rounded-xl border border-outline-variant bg-white text-sm text-on-surface file:ml-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-white file:font-bold hover:file:bg-primary-container" />
+                <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" class="mt-1 block w-full rounded-xl border border-outline-variant bg-white text-sm text-on-surface file:ml-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-white file:font-bold hover:file:bg-primary-container" />
+                <p id="avatar-file-name" class="mt-2 text-xs text-on-surface-variant text-right">لم يتم اختيار ملف.</p>
                 <p class="mt-2 text-xs text-on-surface-variant text-right">الأنواع المدعومة: JPG, PNG, WEBP. الحجم الأقصى 2MB.</p>
                 <x-input-error class="mt-2" :messages="$errors->get('avatar')" />
             </div>
@@ -82,4 +84,46 @@
             @endif
         </div>
     </form>
+
+    <script>
+        (function () {
+            const avatarInput = document.getElementById('avatar');
+            if (!avatarInput) {
+                return;
+            }
+
+            const fileNameLabel = document.getElementById('avatar-file-name');
+            const avatarPreview = document.getElementById('avatar-preview');
+            const avatarFallback = document.getElementById('avatar-fallback');
+
+            avatarInput.addEventListener('change', function () {
+                const file = this.files && this.files[0] ? this.files[0] : null;
+
+                if (!file) {
+                    if (fileNameLabel) {
+                        fileNameLabel.textContent = 'لم يتم اختيار ملف.';
+                    }
+                    return;
+                }
+
+                if (fileNameLabel) {
+                    fileNameLabel.textContent = file.name;
+                }
+
+                if (!avatarPreview) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    avatarPreview.src = String(event.target?.result || '');
+                    avatarPreview.classList.remove('hidden');
+                    if (avatarFallback) {
+                        avatarFallback.classList.add('hidden');
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        })();
+    </script>
 </section>

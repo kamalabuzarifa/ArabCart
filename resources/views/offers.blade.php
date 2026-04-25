@@ -66,6 +66,8 @@
     $defaultHeroCategoryName = 'الموسم';
     $defaultHeroDiscount = $maxDiscountByCategory ? max($maxDiscountByCategory) : 0;
     $defaultHeroImage = asset('images/Offers.jpg');
+    $limit = 3;
+    $gridColumnsClass = (int) $limit === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
 @endphp
 
 @push('page-styles')
@@ -158,7 +160,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rtl-product-grid" id="offers-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 {{ $gridColumnsClass }} gap-8 rtl-product-grid" id="offers-grid">
             @foreach ($offers as $offer)
                 @php
                     $isOwnProduct = auth()->check() && (int) ($offer['user_id'] ?? 0) === auth()->id();
@@ -240,7 +242,7 @@
             var currentDiscountFilter = '';
             var currentSort = 'discount-desc';
             var currentPage = 1;
-            var pageSize = 4;
+            var pageSize = 3;
 
             function updatePriceLabel() {
                 if (!priceRange || !priceValue) return;

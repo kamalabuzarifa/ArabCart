@@ -35,8 +35,8 @@
 
                 <div>
                     <label class="block text-sm font-bold mb-2" for="category_slug">التصنيف</label>
-                    <select id="category_slug" name="category_slug" class="w-full surface-input">
-                        <option value="">بدون تصنيف</option>
+                    <select id="category_slug" name="category_slug" required class="w-full surface-input">
+                        <option value="" disabled @selected(old('category_slug') === null)>اختر التصنيف</option>
                         @foreach ($categories as $category)
                             <option value="{{ $category['slug'] }}" @selected(old('category_slug') === $category['slug'])>{{ $category['name'] }}</option>
                         @endforeach

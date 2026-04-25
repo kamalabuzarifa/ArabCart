@@ -17,6 +17,38 @@ class CheckoutController extends Controller
         return view('checkout.index');
     }
 
+    public function itemsMeta(Request $request): JsonResponse
+    {
+        $rawIds = $request->query('listing_ids', '');
+
+        $ids = collect(explode(',', (string) $rawIds))
+            ->map(static fn (string $id): int => (int) trim($id))
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->take(50)
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return response()->json(['items' => []]);
+        }
+
+        $items = Listing::query()
+            ->whereIn('id', $ids->all())
+            ->get(['id', 'title', 'description'])
+            ->mapWithKeys(static function (Listing $listing): array {
+                return [
+                    (string) $listing->id => [
+                        'title' => (string) $listing->title,
+                        'description' => (string) ($listing->description ?? ''),
+                    ],
+                ];
+            });
+
+        return response()->json([
+            'items' => $items,
+        ]);
+    }
+
     public function complete(Request $request): JsonResponse
     {
         $validated = $request->validate([

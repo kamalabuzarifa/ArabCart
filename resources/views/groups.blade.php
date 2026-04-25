@@ -42,6 +42,9 @@
             ];
         })
         ->all();
+
+    $limit = 3;
+    $gridColumnsClass = (int) $limit === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
 @endphp
 
 @push('page-styles')
@@ -115,7 +118,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rtl-product-grid" id="product-grid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 {{ $gridColumnsClass }} gap-8 rtl-product-grid" id="product-grid">
             @foreach ($products as $product)
                 @php
                     $isOwnProduct = auth()->check() && (int) ($product['user_id'] ?? 0) === auth()->id();
@@ -193,7 +196,7 @@
             var maxPrice = 5000;
             var currentSort = 'popular';
             var currentPage = 1;
-            var pageSize = 4;
+            var pageSize = 3;
 
             function updatePageTitle() {
                 if (!pageTitle) return;

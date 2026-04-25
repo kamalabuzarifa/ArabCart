@@ -185,10 +185,12 @@
             var reviewShippingAddress = document.getElementById('review-shipping-address');
             var reviewPaymentMethod = document.getElementById('review-payment-method');
             var completeEndpoint = "{{ route('checkout.complete') }}";
+            var itemsMetaEndpoint = "{{ route('checkout.items-meta') }}";
             var successEndpoint = "{{ route('checkout.success') }}";
             var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content') || '';
             var selectedPaymentMethod = 'card';
             var currentStep = 1;
+            var descriptionHydrationRequested = false;
 
             function getPaymentMethodLabel(value) {
                 if (value === 'apple') return 'Apple Pay';
@@ -321,13 +323,163 @@
                 localStorage.setItem(checkoutItemsKey, JSON.stringify(items));
             }
 
+            function normalizeCheckoutItem(item) {
+                if (!item || typeof item !== 'object') {
+                    return {
+                        description: ''
+                    };
+                }
+
+                return Object.assign({}, item, {
+                    description: String(item.description || '').trim()
+                });
+            }
+
+            function mergeDescriptionsFromCart(checkoutItems, cartItems) {
+                if (!Array.isArray(checkoutItems) || !checkoutItems.length) {
+                    return [];
+                }
+
+                var cartByListingId = new Map();
+                var cartByKey = new Map();
+
+                (Array.isArray(cartItems) ? cartItems : []).forEach(function (item) {
+                    var normalized = normalizeCheckoutItem(item);
+                    var listingId = Number(normalized.listingId || 0);
+                    var key = String(normalized.key || '');
+
+                    if (listingId > 0) {
+                        cartByListingId.set(listingId, normalized.description || '');
+                    }
+
+                    if (key) {
+                        cartByKey.set(key, normalized.description || '');
+                    }
+                });
+
+                return checkoutItems.map(function (item) {
+                    var normalized = normalizeCheckoutItem(item);
+                    if (normalized.description) {
+                        return normalized;
+                    }
+
+                    var listingId = Number(normalized.listingId || 0);
+                    var key = String(normalized.key || '');
+                    var fallbackDescription = '';
+
+                    if (listingId > 0 && cartByListingId.has(listingId)) {
+                        fallbackDescription = String(cartByListingId.get(listingId) || '');
+                    } else if (key && cartByKey.has(key)) {
+                        fallbackDescription = String(cartByKey.get(key) || '');
+                    }
+
+                    normalized.description = fallbackDescription;
+
+                    return normalized;
+                });
+            }
+
             function getCheckoutSourceItems() {
                 var passedItems = readCheckoutItems();
                 if (Array.isArray(passedItems) && passedItems.length) {
-                    return passedItems;
+                    var mergedItems = mergeDescriptionsFromCart(passedItems, readCart());
+                    writeCheckoutItems(mergedItems);
+                    return mergedItems;
                 }
 
-                return readCart();
+                return readCart().map(normalizeCheckoutItem);
+            }
+
+            function hydrateMissingDescriptions(checkoutItems) {
+                if (descriptionHydrationRequested || !Array.isArray(checkoutItems) || !checkoutItems.length) {
+                    return;
+                }
+
+                var missingIds = checkoutItems
+                    .filter(function (item) {
+                        return !String(item.description || '').trim() && Number(item.listingId || 0) > 0;
+                    })
+                    .map(function (item) {
+                        return Number(item.listingId || 0);
+                    })
+                    .filter(function (id, index, ids) {
+                        return ids.indexOf(id) === index;
+                    });
+
+                if (!missingIds.length) {
+                    return;
+                }
+
+                descriptionHydrationRequested = true;
+
+                fetch(itemsMetaEndpoint + '?listing_ids=' + encodeURIComponent(missingIds.join(',')), {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('items meta request failed');
+                        }
+
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        var itemsMeta = payload && payload.items ? payload.items : {};
+                        var hasChanges = false;
+
+                        var mergedCheckoutItems = checkoutItems.map(function (item) {
+                            var normalized = normalizeCheckoutItem(item);
+                            if (normalized.description) {
+                                return normalized;
+                            }
+
+                            var listingId = Number(normalized.listingId || 0);
+                            var meta = itemsMeta[String(listingId)] || null;
+                            var serverDescription = meta && meta.description ? String(meta.description).trim() : '';
+
+                            if (!serverDescription) {
+                                return normalized;
+                            }
+
+                            hasChanges = true;
+
+                            return Object.assign({}, normalized, {
+                                description: serverDescription
+                            });
+                        });
+
+                        if (!hasChanges) {
+                            return;
+                        }
+
+                        writeCheckoutItems(mergedCheckoutItems);
+
+                        var mergedCart = readCart().map(function (item) {
+                            var normalized = normalizeCheckoutItem(item);
+                            if (normalized.description) {
+                                return normalized;
+                            }
+
+                            var listingId = Number(normalized.listingId || 0);
+                            var meta = itemsMeta[String(listingId)] || null;
+                            var serverDescription = meta && meta.description ? String(meta.description).trim() : '';
+
+                            if (!serverDescription) {
+                                return normalized;
+                            }
+
+                            return Object.assign({}, normalized, {
+                                description: serverDescription
+                            });
+                        });
+
+                        writeCart(mergedCart);
+                        renderSummary();
+                    })
+                    .catch(function () {
+                        descriptionHydrationRequested = false;
+                    });
             }
 
             function resolveListingId(item) {
@@ -416,6 +568,19 @@
                 return selectedPaymentMethod;
             }
 
+            function escapeHtml(value) {
+                return String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function formatDescription(value) {
+                return escapeHtml(value).replace(/\r?\n/g, '<br>');
+            }
+
             function renderSummary() {
                 if (!itemsContainer) return;
 
@@ -438,14 +603,23 @@
                     return;
                 }
 
+                hydrateMissingDescriptions(checkoutItems);
+
                 itemsContainer.innerHTML = checkoutItems.map(function (item) {
-                    return '<div class="flex gap-4 items-center">' +
-                        '<div class="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0"><img src="' + item.image + '" alt="' + item.title + '" class="w-full h-full object-cover" /></div>' +
+                    var title = escapeHtml(item.title || 'منتج بدون اسم');
+                    var description = formatDescription(item.description || '');
+                    var category = escapeHtml(item.category || '');
+                    var image = escapeHtml(item.image || '');
+                    var priceLabel = escapeHtml(item.priceLabel || '0 ر.س');
+
+                    return '<div class="flex gap-4 items-start">' +
+                        '<div class="w-16 h-16 rounded-lg bg-white overflow-hidden flex-shrink-0"><img src="' + image + '" alt="' + title + '" class="w-full h-full object-cover" /></div>' +
                         '<div class="flex-grow min-w-0">' +
-                            '<p class="text-sm font-bold text-on-surface leading-tight truncate">' + item.title + '</p>' +
-                            '<p class="text-xs text-on-surface-variant mt-1">' + item.category + '</p>' +
+                            '<p class="text-sm font-bold text-on-surface leading-tight break-words">' + title + '</p>' +
+                            '<p class="text-xs text-on-surface-variant mt-1 leading-6 whitespace-normal break-words">' + description + '</p>' +
+                            '<p class="text-xs text-on-surface-variant/80 mt-1">' + category + '</p>' +
                         '</div>' +
-                        '<p class="text-sm font-bold text-primary">' + item.priceLabel + '</p>' +
+                        '<p class="text-sm font-bold text-primary">' + priceLabel + '</p>' +
                     '</div>';
                 }).join('');
 

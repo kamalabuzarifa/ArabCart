@@ -538,6 +538,7 @@
 				cart.push({
 					key: payload.key,
 					title: payload.title,
+					description: payload.description || '',
 					image: payload.image,
 					price: payload.price,
 					priceLabel: payload.priceLabel,
@@ -749,6 +750,7 @@
 					addToCart({
 						key: getCartKey(cartAddButton),
 						title: cartAddButton.getAttribute('data-cart-title') || '',
+						description: cartAddButton.getAttribute('data-cart-description') || '',
 						image: cartAddButton.getAttribute('data-cart-image') || '',
 						price: Number(cartAddButton.getAttribute('data-cart-price') || '0'),
 						priceLabel: cartAddButton.getAttribute('data-cart-price-label') || '',

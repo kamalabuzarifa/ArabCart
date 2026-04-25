@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css" />
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -97,6 +98,26 @@
         .cubic-bezier {
             transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
         }
+        .iti {
+            width: 100%;
+            direction: ltr;
+        }
+        .iti__selected-country {
+            border-radius: 0.75rem;
+        }
+        .iti__selected-dial-code,
+        .iti__country,
+        .iti__dial-code {
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+        .iti--separate-dial-code .iti__selected-country {
+            left: 0;
+            right: auto;
+        }
+        .iti input[type="tel"] {
+            text-align: left;
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface antialiased overflow-x-hidden">
@@ -138,13 +159,19 @@
                 </div>
             @endif
 
-            <form class="space-y-5" method="POST" action="{{ route('register') }}">
+            @if (session('status'))
+                <div class="mb-5 rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-primary">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <form id="register-form" class="space-y-5" method="POST" action="{{ route('register') }}">
                 @csrf
 
                 <div class="space-y-1.5">
                     <label for="name" class="font-label text-sm font-bold text-primary px-1">الاسم الكامل</label>
                     <div class="relative group">
-                        <input id="name" name="name" value="{{ old('name') }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" placeholder="اسمك الكامل" type="text" required autofocus autocomplete="name" />
+                        <input id="name" name="name" value="{{ old('name', data_get(session('social_signup'), 'name')) }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" placeholder="اسمك الكامل" type="text" required autofocus autocomplete="name" />
                         <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">person</span>
                     </div>
                 </div>
@@ -152,16 +179,19 @@
                 <div class="space-y-1.5">
                     <label for="email" class="font-label text-sm font-bold text-primary px-1">البريد الإلكتروني</label>
                     <div class="relative group">
-                        <input id="email" name="email" value="{{ old('email') }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" dir="ltr" placeholder="example@domain.com" type="email" required autocomplete="username" />
+                        <input id="email" name="email" value="{{ old('email', data_get(session('social_signup'), 'email')) }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" dir="ltr" placeholder="example@domain.com" type="email" required autocomplete="username" />
                         <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">mail</span>
                     </div>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label for="phone" class="font-label text-sm font-bold text-primary px-1">رقم الهاتف</label>
                     <div class="relative group">
-                        <input id="phone" name="phone" value="{{ old('phone') }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" dir="ltr" placeholder="+966 50 000 0000" type="tel" autocomplete="tel" />
-                        <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">call</span>
+                        <label for="phone" class="font-label text-sm font-bold text-primary px-1">رقم الهاتف</label>
+                        <input id="phone_country_code" name="phone_country_code" type="hidden" value="{{ old('phone_country_code', '+970') }}" />
+                        <div class="relative group flex-1">
+                            <input id="phone" name="phone" value="{{ old('phone') }}" class="w-full h-14 bg-surface-container-highest border-none rounded-xl px-12 font-body text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 cubic-bezier transition-all" dir="ltr" placeholder="59 000 0000" type="tel" required autocomplete="tel-national" />
+                        </div>
+                        {{-- <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">call</span> --}}
                     </div>
                 </div>
 
@@ -194,7 +224,10 @@
                     </label>
                 </div>
 
-                <button class="w-full h-14 bg-secondary-container text-on-secondary-container font-headline font-bold text-lg rounded-full shadow-lg shadow-secondary-container/20 hover:scale-[1.02] active:scale-[0.98] cubic-bezier transition-all mt-4" type="submit">
+                <button
+                    class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all custom-bezier"
+                    type="submit"
+                >
                     إنشاء الحساب
                 </button>
             </form>
@@ -209,16 +242,16 @@
             <div class="mt-12 pt-8 border-t border-outline-variant/10">
                 @php
                     $socialProviders = [
-                        ['key' => 'google', 'label' => 'Google', 'icon' => 'google.png'],
-                        ['key' => 'linkedin', 'label' => 'LinkedIn', 'icon' => 'linkedIn.png'],
-                        ['key' => 'facebook', 'label' => 'Facebook', 'icon' => 'facebook.png'],
+                        ['key' => 'google', 'label' => 'Google', 'image' => 'google.png'],
+                        ['key' => 'linkedin', 'label' => 'LinkedIn', 'image' => 'linkedIn.png'],
+                        ['key' => 'facebook', 'label' => 'Facebook', 'image' => 'facebook.png'],
                     ];
                 @endphp
                 <div class="grid grid-cols-3 gap-4">
                     @foreach ($socialProviders as $provider)
                         <a href="{{ route('social.redirect', $provider['key']) }}" class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-outline-variant/20 bg-white hover:bg-surface-container-low transition-all cubic-bezier">
+                            <img class="h-6 w-6 shrink-0 object-contain" src="{{ asset('images/' . $provider['image']) }}" alt="{{ $provider['label'] }}" />
                             <span class="text-sm font-bold text-on-surface">{{ $provider['label'] }}</span>
-                            <span class="material-symbols-outlined text-base">{{ $provider['key'] === 'google' ? 'g_mobiledata' : ($provider['key'] === 'linkedin' ? 'work' : 'thumb_up') }}</span>
                         </a>
                     @endforeach
                 </div>
@@ -240,6 +273,7 @@
     </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/intlTelInput.min.js"></script>
 <script>
     document.querySelectorAll('[data-toggle-password]').forEach(function (button) {
         button.addEventListener('click', function () {
@@ -250,6 +284,37 @@
             this.querySelector('span').textContent = input.type === 'password' ? 'visibility' : 'visibility_off';
         });
     });
+
+    var phoneInput = document.getElementById('phone');
+    var countryCodeInput = document.getElementById('phone_country_code');
+    var registerForm = document.getElementById('register-form');
+
+    if (phoneInput && countryCodeInput && registerForm && window.intlTelInput) {
+        var iti = window.intlTelInput(phoneInput, {
+            initialCountry: 'ps',
+            preferredCountries: ['ps', 'sa', 'eg', 'ae', 'jo'],
+            separateDialCode: true,
+            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js'
+        });
+
+        if (countryCodeInput.value) {
+            iti.setNumber(countryCodeInput.value + (phoneInput.value || ''));
+        }
+
+        registerForm.addEventListener('submit', function () {
+            var selectedCountry = iti.getSelectedCountryData();
+            var selectedDialCode = selectedCountry && selectedCountry.dialCode ? '+' + selectedCountry.dialCode : '+970';
+            var fullNumber = iti.getNumber();
+
+            countryCodeInput.value = selectedDialCode;
+
+            if (fullNumber && fullNumber.indexOf(selectedDialCode) === 0) {
+                phoneInput.value = fullNumber.slice(selectedDialCode.length).replace(/\D/g, '');
+            } else {
+                phoneInput.value = phoneInput.value.replace(/\D/g, '');
+            }
+        });
+    }
 </script>
 </body>
 </html>

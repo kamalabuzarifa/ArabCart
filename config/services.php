@@ -53,4 +53,9 @@ return [
         'redirect' => env('LINKEDIN_REDIRECT_URI'),
     ],
 
+    'phone_verification' => [
+        'dev_code' => env('PHONE_VERIFICATION_DEV_CODE', '708946'),
+        'ttl_minutes' => (int) env('PHONE_VERIFICATION_TTL_MINUTES', 10),
+    ],
+
 ];

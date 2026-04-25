@@ -12,7 +12,7 @@ class Catalog
             'electronics' => asset('images/Electronics.jpg'),
             'fashion' => asset('images/Fashion.jpg'),
             'perfumes' => asset('images/perfumes.jpg'),
-            'home' => asset('images/house.jpg'),
+            'shoes' => asset('images/shoes.jpg'),
             default => null,
         };
     }
@@ -25,7 +25,7 @@ class Catalog
         return [
             ['slug' => 'electronics', 'icon' => 'devices', 'name' => 'الإلكترونيات'],
             ['slug' => 'fashion', 'icon' => 'checkroom', 'name' => 'الأزياء'],
-            ['slug' => 'home', 'icon' => 'home', 'name' => 'المنزل'],
+            ['slug' => 'shoes', 'icon' => 'footprint', 'name' => 'الأحذية'],
             ['slug' => 'perfumes', 'icon' => 'self_care', 'name' => 'العطور'],
             ['slug' => 'gifts', 'icon' => 'featured_seasonal_and_gifts', 'name' => 'الهدايا'],
         ];

@@ -14,6 +14,7 @@
         ->whereNotNull('category_slug')
         ->whereNotNull('image_url')
         ->latest()
+        ->take(9)
         ->get()
         ->map(static function (\App\Models\Listing $listing) use ($categoryNames): array {
             $categorySlug = (string) $listing->category_slug;
@@ -42,6 +43,8 @@
         ->all();
 
     $heroImage = $allProducts[0]['image'] ?? null;
+    $limit = 3;
+    $gridColumnsClass = (int) $limit === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
 @endphp
 @push('page-styles')
     <style>
@@ -122,7 +125,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rtl-product-grid" id="products-grid">
+                <div class="grid grid-cols-1 sm:grid-cols-2 {{ $gridColumnsClass }} gap-8 rtl-product-grid" id="products-grid">
                     @foreach ($allProducts as $product)
                         @php
                             $isOwnProduct = auth()->check() && (int) ($product['user_id'] ?? 0) === auth()->id();
@@ -213,7 +216,7 @@
             var currentCategory = '';
             var maxPrice = 5000;
             var currentPage = 1;
-            var pageSize = 4;
+            var pageSize = 3;
 
             function updatePriceLabel() {
                 if (!priceRange || !priceValue) return;

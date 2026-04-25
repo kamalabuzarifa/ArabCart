@@ -47,7 +47,7 @@ class MarketplaceController extends Controller
             });
         }
 
-        $ownListings = $ownListingsQuery->latest()->paginate(9)->withQueryString();
+        $ownListings = $ownListingsQuery->latest()->get();
 
         $ownCount = $user !== null
             ? Listing::query()->where('is_active', true)->where('user_id', $user->id)->count()
@@ -99,7 +99,7 @@ class MarketplaceController extends Controller
                 'category' => $categoryNames[$categorySlug] ?? 'منتجات المستخدمين',
                 'price' => number_format($displayPrice, 2) . ' ر.س',
                 'image' => $listing->image_url ? route('marketplace.image', $listing) : null,
-                'url' => route('marketplace.index', ['q' => $listing->title]),
+                'url' => route('marketplace.show', ['listing' => $listing]),
             ];
         })->values();
 
@@ -110,6 +110,35 @@ class MarketplaceController extends Controller
     {
         return view('marketplace.create', [
             'categories' => Catalog::categories(),
+        ]);
+    }
+
+    public function show(Request $request, Listing $listing): View
+    {
+        abort_unless($listing->is_active, 404);
+
+        $listing->load(['user:id,name']);
+
+        $feedbackSummary = $listing->feedbacks()
+            ->selectRaw('COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as ratings_count')
+            ->first();
+
+        $feedbacks = $listing->feedbacks()
+            ->with('user:id,name,avatar')
+            ->latest()
+            ->get();
+
+        $categoryNames = collect(Catalog::categories())
+            ->mapWithKeys(static fn (array $category): array => [$category['slug'] => $category['name']])
+            ->all();
+
+        return view('marketplace.show', [
+            'listing' => $listing,
+            'categoryName' => $categoryNames[$listing->category_slug] ?? ($listing->category_slug ?? 'غير مصنف'),
+            'feedbackAverage' => round((float) ($feedbackSummary->avg_rating ?? 0), 2),
+            'feedbackCount' => (int) ($feedbackSummary->ratings_count ?? 0),
+            'feedbacks' => $feedbacks,
+            'canBuy' => $request->user()?->id !== $listing->user_id,
         ]);
     }
 
@@ -144,12 +173,12 @@ class MarketplaceController extends Controller
             'price' => $request->float('price'),
             'has_offer' => $request->boolean('has_offer'),
             'offer_price' => $request->boolean('has_offer') ? $request->float('offer_price') : null,
-            'category_slug' => $request->input('category_slug') ?: null,
+            'category_slug' => $request->input('category_slug'),
             'image_url' => $resolvedImage['value'],
             'is_active' => true,
         ]);
 
-        return redirect()->route('marketplace.index')->with('status', 'تم إضافة المنتج بنجاح وأصبح ظاهرًا للبيع.');
+        return redirect()->route('marketplace.index')->with('status', 'تم إضافة المنتج بنجاح.');
     }
 
     public function update(UpdateListingRequest $request, Listing $listing): RedirectResponse
@@ -174,7 +203,7 @@ class MarketplaceController extends Controller
             'price' => $request->float('price'),
             'has_offer' => $request->boolean('has_offer'),
             'offer_price' => $request->boolean('has_offer') ? $request->float('offer_price') : null,
-            'category_slug' => $request->input('category_slug') ?: null,
+            'category_slug' => $request->input('category_slug'),
             'image_url' => $resolvedImage['value'],
         ]);
 

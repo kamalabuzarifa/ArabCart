@@ -22,6 +22,7 @@
     'cartPrice' => null,
     'cartPriceLabel' => null,
     'cartCategory' => null,
+    'cartDescription' => null,
     'cartBuyUrl' => null,
     'isOwnProduct' => false,
     'ownLabel' => 'هذا المنتج ملكك',
@@ -50,6 +51,7 @@
     $cartPrice = $cartPrice ?? $price;
     $cartPriceLabel = $cartPriceLabel ?? $price;
     $cartCategory = $cartCategory ?? $category;
+    $cartDescription = $cartDescription ?? $description;
     $headingTag = in_array($headingTag, ['h2', 'h3', 'h4'], true) ? $headingTag : 'h3';
 @endphp
 
@@ -128,7 +130,7 @@
                             <span class="material-symbols-outlined">{{ $ownIcon }}</span>
                         </button>
                     @elseif ($showCart && $cartBuyUrl)
-                        <button class="bg-primary text-white p-3 rounded-full hover:bg-primary-container transition-colors flex items-center justify-center" type="button" data-cart-add data-cart-item-id="{{ $cartItemId }}" data-cart-listing-id="{{ $cartListingId }}" data-cart-title="{{ $cartTitle }}" data-cart-image="{{ $cartImage }}" data-cart-price="{{ $cartPrice }}" data-cart-price-label="{{ $cartPriceLabel }}" data-cart-category="{{ $cartCategory }}" data-cart-buy-url="{{ $cartBuyUrl }}" aria-label="إضافة إلى السلة">
+                        <button class="bg-primary text-white p-3 rounded-full hover:bg-primary-container transition-colors flex items-center justify-center" type="button" data-cart-add data-cart-item-id="{{ $cartItemId }}" data-cart-listing-id="{{ $cartListingId }}" data-cart-title="{{ $cartTitle }}" data-cart-image="{{ $cartImage }}" data-cart-price="{{ $cartPrice }}" data-cart-price-label="{{ $cartPriceLabel }}" data-cart-category="{{ $cartCategory }}" data-cart-description="{{ $cartDescription }}" data-cart-buy-url="{{ $cartBuyUrl }}" aria-label="إضافة إلى السلة">
                             <span class="material-symbols-outlined">shopping_cart</span>
                         </button>
                     @endif

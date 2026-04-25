@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,9 +13,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'email', 'password', 'provider', 'provider_id', 'avatar', 'email_verified_at', 'seller_rating_avg', 'seller_rating_count', 'seller_sales_count'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'provider', 'provider_id', 'avatar', 'email_verified_at', 'phone_verified_at', 'seller_rating_avg', 'seller_rating_count', 'seller_sales_count'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -29,6 +29,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'seller_rating_avg' => 'decimal:2',
             'seller_rating_count' => 'integer',
@@ -53,6 +54,27 @@ class User extends Authenticatable
                 return asset('storage/'.ltrim($avatar, '/'));
             },
         );
+    }
+
+    public function hasVerifiedPhone(): bool
+    {
+        return blank($this->phone) || ! is_null($this->phone_verified_at);
+    }
+
+    public function requiresPhoneVerification(): bool
+    {
+        return filled($this->phone);
+    }
+
+    public function markPhoneAsVerified(): bool
+    {
+        if ($this->hasVerifiedPhone()) {
+            return true;
+        }
+
+        return $this->forceFill([
+            'phone_verified_at' => now(),
+        ])->save();
     }
     
     public function listings(): HasMany

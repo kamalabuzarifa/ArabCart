@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ListingFeedbackController;
 use App\Http\Controllers\ProductReviewController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\FacebookController;
@@ -170,13 +171,14 @@ Route::post('/newsletter/subscribe', function () {
 Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marketplace.index');
 Route::get('/marketplace/search', [MarketplaceController::class, 'search'])->name('marketplace.search');
 Route::get('/marketplace/{listing}/image', [MarketplaceController::class, 'image'])->name('marketplace.image');
+Route::get('/marketplace/{listing}', [MarketplaceController::class, 'show'])->whereNumber('listing')->name('marketplace.show');
 
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{slug}', [CategoryController::class, 'show'])->name('categories.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth'])->name('dashboard');
+})->middleware(['auth', 'phone.verified'])->name('dashboard');
 
 Route::middleware('guest')->group(function () {
     Route::get('/auth/google', [GoogleController::class, 'redirect']);
@@ -185,8 +187,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/facebook/callback', [FacebookController::class, 'callback']);
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'phone.verified'])->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
+    Route::get('/checkout/items-meta', [CheckoutController::class, 'itemsMeta'])->name('checkout.items-meta');
     Route::get('/checkout/track', function () {
         return view('checkout.track');
     })->name('checkout.track');
@@ -202,6 +205,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/marketplace/{listing}', [MarketplaceController::class, 'destroy'])->name('marketplace.destroy');
     Route::post('/marketplace/{listing}/buy', [MarketplaceController::class, 'buy'])->name('marketplace.buy');
     Route::post('/marketplace/{listing}/orders/{order}/review', [ProductReviewController::class, 'store'])->name('marketplace.reviews.store');
+    Route::post('/marketplace/{listing}/feedback', [ListingFeedbackController::class, 'store'])->name('marketplace.feedback.store');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

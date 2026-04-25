@@ -7,7 +7,7 @@
     $latestOrder = auth()->check()
         ? \App\Models\ListingOrder::query()
             ->where('buyer_id', auth()->id())
-            ->with('listing:id,title,image_url')
+            ->with('listing:id,title,description,image_url')
             ->latest()
             ->first()
         : null;
@@ -21,6 +21,7 @@
     $statusText = $latestOrder ? ($statusLabels[$latestOrder->status] ?? 'تم التأكيد') : 'لا يوجد طلبات حالياً';
     $trackingCode = $latestOrder ? ('ORD-' . str_pad((string) $latestOrder->id, 6, '0', STR_PAD_LEFT)) : '---';
     $latestTitle = $latestOrder && $latestOrder->listing ? $latestOrder->listing->title : 'لا يوجد منتج';
+    $latestDescription = $latestOrder && $latestOrder->listing ? (string) $latestOrder->listing->description : 'لا يوجد وصف متاح.';
 @endphp
 
 @section('content')
@@ -65,6 +66,7 @@
                     <h3 class="text-lg font-bold text-primary">ملخص الطلب</h3>
                     <p class="text-sm text-on-surface-variant">آخر منتج تم شراؤه:</p>
                     <p class="font-bold text-on-surface">{{ $latestTitle }}</p>
+                    <p class="text-sm text-on-surface-variant leading-7 break-words">{{ $latestDescription }}</p>
                     <a href="{{ route('checkout.index') }}" class="inline-flex w-full items-center justify-center rounded-full bg-primary text-white font-bold py-3 hover:bg-primary-container transition-colors">العودة للدفع</a>
                 </div>
             </aside>

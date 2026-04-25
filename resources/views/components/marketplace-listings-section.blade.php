@@ -48,6 +48,16 @@
         $query->where('rating_count', '>', 0)
             ->orderByDesc('rating_avg')
             ->orderByDesc('sales_count');
+    } elseif ($mode === 'best-sellers') {
+        $title = 'الأكثر مبيعًا';
+        $subtitle = 'منتجات يفضّلها المشترون حسب عدد عمليات الشراء';
+        $emptyTitle = 'لا توجد منتجات الأكثر مبيعًا بعد';
+        $emptyMessage = 'لا توجد منتجات لديها مبيعات كافية لعرضها في هذا القسم الآن.';
+        $sectionClass = 'bg-surface-container-low border border-outline-variant/10 shadow-[0_24px_80px_rgba(15,23,42,0.08)]';
+        $query->where('sales_count', '>', 0)
+            ->orderByDesc('sales_count')
+            ->orderByDesc('rating_avg')
+            ->latest();
     } elseif ($mode === 'groups') {
         $title = 'منتجات ضمن التصنيفات';
         $subtitle = 'منتجات منشورة ومصنفة لتصفح أسهل';
@@ -61,13 +71,16 @@
         $emptyTitle = 'لا توجد منتجات حديثة بعد';
         $emptyMessage = 'لا توجد منتجات جديدة منشورة حتى الآن.';
         $sectionClass = 'bg-surface-container-low border border-outline-variant/10 shadow-[0_24px_80px_rgba(15,23,42,0.08)]';
-        $query->latest();
+        $query->latest()->limit(12);
+    } elseif ($mode === 'home') {
+        $query->latest()->limit(9);
     } else {
         $query->latest();
     }
 
     $userListings = $query->get();
     $isExpandable = $userListings->count() > $limit;
+    $gridColumnsClass = (int) $limit === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
 @endphp
 
 <section class="page-container mb-16" data-expandable-listings-section data-expandable-listings-mode="{{ $mode }}" data-expandable-listings-threshold="{{ $limit }}">
@@ -98,7 +111,7 @@
             </div>
 
             @if ($userListings->isNotEmpty())
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rtl-product-grid">
+                <div class="grid grid-cols-1 sm:grid-cols-2 {{ $gridColumnsClass }} gap-8 rtl-product-grid">
                     @foreach ($userListings as $listing)
                         @php
                             $isHidden = $loop->index >= $limit;
@@ -156,7 +169,7 @@
                                                 <span class="material-symbols-outlined">shopping_cart</span>
                                             </button>
                                         @else
-                                            <button class="bg-primary text-white p-3 rounded-full hover:bg-primary-container transition-colors flex items-center justify-center" type="button" data-cart-add data-cart-item-id="listing-{{ $listing->id }}" data-cart-listing-id="{{ $listing->id }}" data-cart-title="{{ $listing->title }}" data-cart-image="{{ route('marketplace.image', $listing) }}" data-cart-price="{{ (float) ($listing->has_offer && $listing->offer_price ? $listing->offer_price : $listing->price) }}" data-cart-price-label="{{ number_format((float) ($listing->has_offer && $listing->offer_price ? $listing->offer_price : $listing->price)) }} ر.س" data-cart-category="{{ $categoryNames[$listing->category_slug] ?? $listing->category_slug }}" data-cart-buy-url="{{ route('marketplace.buy', ['listing' => $listing->id]) }}" aria-label="إضافة إلى السلة">
+                                            <button class="bg-primary text-white p-3 rounded-full hover:bg-primary-container transition-colors flex items-center justify-center" type="button" data-cart-add data-cart-item-id="listing-{{ $listing->id }}" data-cart-listing-id="{{ $listing->id }}" data-cart-title="{{ $listing->title }}" data-cart-description="{{ $listing->description }}" data-cart-image="{{ route('marketplace.image', $listing) }}" data-cart-price="{{ (float) ($listing->has_offer && $listing->offer_price ? $listing->offer_price : $listing->price) }}" data-cart-price-label="{{ number_format((float) ($listing->has_offer && $listing->offer_price ? $listing->offer_price : $listing->price)) }} ر.س" data-cart-category="{{ $categoryNames[$listing->category_slug] ?? $listing->category_slug }}" data-cart-buy-url="{{ route('marketplace.buy', ['listing' => $listing->id]) }}" aria-label="إضافة إلى السلة">
                                                 <span class="material-symbols-outlined">shopping_cart</span>
                                             </button>
                                         @endif

@@ -52,6 +52,9 @@
         ->values()
         ->all();
 
+    $productsDisplayLimit = 3;
+    $isProductsExpandable = count($products) > $productsDisplayLimit;
+
     $heroImage = $products[0]['image'] ?? null;
     $featuredProductImages = collect($products)
         ->pluck('image')
@@ -71,7 +74,7 @@
     $electronicsImage = Catalog::categoryCoverImage('electronics');
     $fashionImage = Catalog::categoryCoverImage('fashion');
     $perfumesImage = Catalog::categoryCoverImage('perfumes');
-    $homeImage = Catalog::categoryCoverImage('home');
+    $shoesImage = Catalog::categoryCoverImage('shoes');
 
     $sectionShellClass = 'bg-surface-container-low border border-outline-variant/10 shadow-[0_24px_80px_rgba(15,23,42,0.08)]';
     $sectionOrbClass = 'bg-white/35 ring-1 ring-white/40';
@@ -184,17 +187,17 @@
                     <h3 class="text-white text-xl font-bold font-headline">العطور</h3>
                 </div>
             </a>
-            <a class="md:col-span-2 {{ $categoryCardClass }} min-h-[220px]" href="{{ route('categories.show', ['slug' => 'home']) }}">
-                @if ($homeImage)
-                    <img alt="Home" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="{{ $homeImage }}" />
+            <a class="md:col-span-2 {{ $categoryCardClass }} min-h-[220px]" href="{{ route('categories.show', ['slug' => 'shoes']) }}">
+                @if ($shoesImage)
+                    <img alt="Shoes" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="{{ $shoesImage }}" />
                 @else
                     <div class="absolute inset-0 flex items-center justify-center text-on-surface-variant">
-                        <span class="material-symbols-outlined text-6xl">home</span>
+                        <span class="material-symbols-outlined text-6xl">footprint</span>
                     </div>
                 @endif
                 <div class="{{ $categoryCaptionClass }} p-6">
-                    <h3 class="text-white text-2xl font-bold font-headline">المنزل</h3>
-                    <p class="text-white/80 text-sm">لمسات جمالية لمساحتك</p>
+                    <h3 class="text-white text-2xl font-bold font-headline">الأحذية</h3>
+                    <p class="text-white/80 text-sm">موديلات يومية وعصرية</p>
                 </div>
             </a>
         </div>
@@ -212,7 +215,11 @@
                         <p class="text-on-surface-variant mt-2">الأفضل مبيعاً لهذا الأسبوع</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button id="home-products-toggle" class="text-secondary font-bold hover:underline inline-flex" type="button" data-expandable-listings-toggle data-collapsed-label="عرض الكل" data-expanded-label="إخفاء" aria-expanded="false">عرض الكل</button>
+                        @if ($isProductsExpandable)
+                            <button id="home-products-toggle" class="text-secondary font-bold hover:underline inline-flex" type="button" data-expandable-listings-toggle data-expandable-listings-target="home-best-sellers-section" data-collapsed-label="عرض الكل" data-expanded-label="إخفاء" aria-expanded="false">عرض الكل</button>
+                        @else
+                            <a href="{{ route('marketplace.index') }}" class="text-secondary font-bold hover:underline inline-flex">عرض الكل</a>
+                        @endif
                         <button id="home-filter-toggle" aria-controls="page-sidebar" aria-label="فتح لوحة التصفية" class="inline-flex lg:hidden items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-primary font-bold shadow-sm hover:bg-surface-container transition-colors" type="button">
                             <span class="material-symbols-outlined">filter_list</span>
                             <span>تصفية النتائج</span>
@@ -221,11 +228,11 @@
                 </div>
 
                 @if ($products)
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 rtl-product-grid" data-expandable-listings-section data-expandable-listings-mode="best-sellers" data-expandable-listings-threshold="4">
+                    <div id="home-best-sellers-section" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 rtl-product-grid" data-expandable-listings-section data-expandable-listings-mode="best-sellers" data-expandable-listings-threshold="{{ $productsDisplayLimit }}">
                         @foreach ($products as $product)
                             @php
                                 $isOwnProduct = auth()->check() && (int) ($product['user_id'] ?? 0) === auth()->id();
-                                $isHidden = $loop->index >= 4;
+                                $isHidden = $isProductsExpandable && $loop->index >= $productsDisplayLimit;
                             @endphp
                             <x-product-card
                                 class="product-card-groups {{ $isHidden ? 'hidden' : '' }}"
@@ -263,7 +270,7 @@
                             </div>
                             <h3 class="text-2xl font-black text-primary mb-3">لا توجد منتجات مختارة بعد</h3>
                             <p class="text-sm text-on-surface-variant leading-7">أضف أول منتج ليظهر هنا ضمن الاختيارات الأفضل مبيعاً.</p>
-                            <a href="{{ route('#') }}" class="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-primary-container">
+                            <a href="{{ route('marketplace.index') }}" class="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition-colors hover:bg-primary-container">
                                 تصفح السوق
                             </a>
                         </div>
@@ -274,8 +281,8 @@
 
     </section>
     
-    @include('components.marketplace-listings-section', ['mode' => 'top-rated', 'limit' => 4])
-    @include('components.marketplace-listings-section', ['mode' => 'home', 'limit' => 4])
+    @include('components.marketplace-listings-section', ['mode' => 'best-sellers', 'limit' => 3])
+    @include('components.marketplace-listings-section', ['mode' => 'home', 'limit' => 3])
     
     <section class="page-container mb-16">
         <div class="{{ $sectionShellClass }} rounded-[40px] p-8 md:p-16 flex flex-col md:flex-row-reverse items-center justify-between gap-12 overflow-hidden relative">
@@ -433,7 +440,7 @@
             });
 
             function syncExpandableButtons(section, expanded) {
-                var buttons = section.querySelectorAll('[data-expandable-listings-toggle]');
+                var buttons = getExpandableButtonsForSection(section);
 
                 buttons.forEach(function (button) {
                     var collapsedLabel = button.getAttribute('data-collapsed-label') || 'عرض الكل';
@@ -444,40 +451,101 @@
                 });
             }
 
+            function getExpandableButtonsForSection(section) {
+                var localButtons = Array.prototype.slice.call(section.querySelectorAll('[data-expandable-listings-toggle]'));
+                var sectionId = section.getAttribute('id');
+
+                if (!sectionId) {
+                    return localButtons;
+                }
+
+                var targetedButtons = Array.prototype.slice.call(document.querySelectorAll('[data-expandable-listings-toggle][data-expandable-listings-target="' + sectionId + '"]'));
+
+                return localButtons.concat(targetedButtons.filter(function (button) {
+                    return localButtons.indexOf(button) === -1;
+                }));
+            }
+
+            function resolveExpandableSectionForButton(button) {
+                var targetId = button.getAttribute('data-expandable-listings-target');
+
+                if (targetId) {
+                    return document.getElementById(targetId);
+                }
+
+                return button.closest('[data-expandable-listings-section]');
+            }
+
             function setExpandableSectionState(section, expanded) {
                 var threshold = Number(section.getAttribute('data-expandable-listings-threshold') || '4');
                 var items = section.querySelectorAll('[data-expandable-listings-item]');
+                var canExpand = items.length > threshold;
+
+                if (!canExpand) {
+                    expanded = false;
+                }
 
                 items.forEach(function (item, index) {
-                    item.classList.toggle('hidden', !expanded && index >= threshold);
+                    item.classList.toggle('hidden', canExpand && !expanded && index >= threshold);
                 });
 
                 section.dataset.expanded = expanded ? 'true' : 'false';
                 syncExpandableButtons(section, expanded);
             }
 
+            function syncExpandableButtonVisibility(section) {
+                var buttons = getExpandableButtonsForSection(section);
+
+                buttons.forEach(function (button) {
+                    button.classList.remove('hidden');
+                    button.disabled = false;
+                });
+            }
+
             function initExpandableSections() {
                 var sections = document.querySelectorAll('[data-expandable-listings-section]');
 
                 sections.forEach(function (section) {
-                    var buttons = section.querySelectorAll('[data-expandable-listings-toggle]');
+                    var buttons = getExpandableButtonsForSection(section);
 
                     if (!buttons.length) {
                         return;
                     }
 
                     setExpandableSectionState(section, false);
-
-                    buttons.forEach(function (button) {
-                        button.addEventListener('click', function () {
-                            var isExpanded = section.dataset.expanded === 'true';
-                            setExpandableSectionState(section, !isExpanded);
-                        });
-                    });
+                    syncExpandableButtonVisibility(section);
                 });
             }
 
             initExpandableSections();
+
+            document.addEventListener('click', function (event) {
+                var toggleButton = event.target.closest('[data-expandable-listings-toggle]');
+                if (!toggleButton) {
+                    return;
+                }
+
+                var section = resolveExpandableSectionForButton(toggleButton);
+                if (!section) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (toggleButton.disabled) {
+                    return;
+                }
+
+                var threshold = Number(section.getAttribute('data-expandable-listings-threshold') || '4');
+                var items = section.querySelectorAll('[data-expandable-listings-item]');
+
+                if (items.length <= threshold) {
+                    return;
+                }
+
+                var isExpanded = section.dataset.expanded === 'true';
+                setExpandableSectionState(section, !isExpanded);
+            });
 
             if (range && output) {
                 output.textContent = Number(range.value).toLocaleString('en-US');

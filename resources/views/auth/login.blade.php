@@ -182,7 +182,10 @@
                     <label class="text-sm text-on-surface-variant cursor-pointer" for="remember">تذكرني على هذا الجهاز</label>
                 </div>
 
-                <button class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all custom-bezier" type="submit">
+                <button
+                    class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary py-4 rounded-full font-bold text-lg shadow-xl shadow-primary/10 hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all custom-bezier"
+                    type="submit"
+                >
                     تسجيل الدخول
                 </button>
             </form>
@@ -199,16 +202,16 @@
             <div class="grid grid-cols-3 gap-4">
                 @php
                     $socialProviders = [
-                        ['key' => 'google', 'label' => 'Google', 'imag' => 'google.png'],
-                        ['key' => 'linkedin', 'label' => 'LinkedIn', 'icon' => 'linkedIn.png'],
-                        ['key' => 'facebook', 'label' => 'Facebook', 'icon' => 'facebook.png'],
+                        ['key' => 'google', 'label' => 'Google', 'image' => 'google.png'],
+                        ['key' => 'linkedin', 'label' => 'LinkedIn', 'image' => 'linkedIn.png'],
+                        ['key' => 'facebook', 'label' => 'Facebook', 'image' => 'facebook.png'],
                     ];
                 @endphp
 
                 @foreach ($socialProviders as $provider)
                     <a href="{{ route('social.redirect', $provider['key']) }}" class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-outline-variant/20 bg-white hover:bg-surface-container-low transition-all custom-bezier">
+                        <img class="h-6 w-6 shrink-0 object-contain" src="{{ asset('images/' . $provider['image']) }}" alt="{{ $provider['label'] }}" />
                         <span class="text-sm font-bold text-on-surface">{{ $provider['label'] }}</span>
-                        <span class="material-symbols-outlined text-base">{{ $provider['key'] === 'google' ? 'g_mobiledata' : ($provider['key'] === 'linkedin' ? 'work' : 'thumb_up') }}</span>
                     </a>
                 @endforeach
             </div>

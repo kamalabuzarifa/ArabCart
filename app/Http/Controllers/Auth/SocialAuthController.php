@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
 
@@ -54,6 +55,7 @@ class SocialAuthController extends Controller
     public function callback(string $provider, Request $request): RedirectResponse
     {
         $provider = Str::lower($provider);
+        $request->session()->forget('social_signup');
 
         if (! $this->isSupportedProvider($provider)) {
             abort(404);
@@ -96,44 +98,35 @@ class SocialAuthController extends Controller
                 ->with('social_error', $message);
         }
 
-        $email = $socialUser->getEmail() ?: $provider.'_'.$socialUser->getId().'@oauth.local';
+        $email = trim((string) $socialUser->getEmail());
+
+        if ($email === '') {
+            return redirect()
+                ->route('login')
+                ->with('social_error', 'تعذر إتمام تسجيل الدخول عبر '.SocialProviders::label($provider).' لأن المزود لم يرجع بريدًا إلكترونيًا.');
+        }
+
         $name = $socialUser->getName() ?: $socialUser->getNickname() ?: Str::title($provider).' User';
         $avatar = $socialUser->getAvatar();
 
-        $user = User::query()
-            ->where('provider', $provider)
-            ->where('provider_id', $socialUser->getId())
-            ->first();
-
-        if (! $user && $socialUser->getEmail()) {
-            $user = User::where('email', $socialUser->getEmail())->first();
-        }
+        $user = User::where('email', $email)->first();
 
         if ($user) {
             $user->update([
                 'name' => $user->name ?: $name,
-                'email' => $user->email ?: $email,
                 'provider' => $provider,
                 'provider_id' => $socialUser->getId(),
                 'avatar' => $avatar,
                 'email_verified_at' => $user->email_verified_at ?: Carbon::now(),
             ]);
-        } else {
-            $user = User::create([
-                'name' => $name,
-                'email' => $email,
-                'password' => Hash::make(Str::random(40)),
-                'provider' => $provider,
-                'provider_id' => $socialUser->getId(),
-                'avatar' => $avatar,
-                'email_verified_at' => Carbon::now(),
-            ]);
+
+            Auth::login($user, true);
+            request()->session()->regenerate();
+
+            return redirect()->to('/');
         }
 
-        Auth::login($user, true);
-        request()->session()->regenerate();
-
-        return redirect()->to('/');
+        return $this->redirectToSignupWithSocialData($provider, $socialUser, $email, $name, $avatar);
     }
 
     private function isSupportedProvider(string $provider): bool
@@ -203,6 +196,24 @@ class SocialAuthController extends Controller
         return app()->environment('local') && (bool) config('app.social_login_mock', false);
     }
 
+    private function redirectToSignupWithSocialData(
+        string $provider,
+        SocialiteUser $socialUser,
+        string $email,
+        string $name,
+        ?string $avatar
+    ): RedirectResponse {
+        session()->put('social_signup', [
+            'provider' => $provider,
+            'provider_id' => $socialUser->getId(),
+            'email' => $email,
+            'name' => $name,
+            'avatar' => $avatar,
+        ]);
+
+        return redirect()->route('register')->with('status', "لا يوجد حساب مرتبط بالبريد {$email}. أكمل إنشاء الحساب أولاً.");
+    }
+
     private function loginWithMockProvider(string $provider): RedirectResponse
     {
         $providerName = SocialProviders::label($provider);
@@ -233,7 +244,7 @@ class SocialAuthController extends Controller
             ->with('status', 'تم تسجيل الدخول بوضع التطوير عبر '.$providerName.'.');
     }
 
-    private function socialiteDriver(string $provider)
+    private function socialiteDriver(string $provider): \Laravel\Socialite\Contracts\Provider
     {
         $driver = Socialite::driver($provider);
 

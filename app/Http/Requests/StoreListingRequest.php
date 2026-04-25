@@ -19,7 +19,7 @@ class StoreListingRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:1', 'max:500000'],
             'has_offer' => ['nullable', 'boolean'],
             'offer_price' => ['nullable', 'numeric', 'min:1', 'max:500000', 'required_if:has_offer,1', 'lt:price'],
-            'category_slug' => ['nullable', 'in:electronics,fashion,home,perfumes,gifts'],
+            'category_slug' => ['required', 'in:electronics,fashion,shoes,perfumes,gifts'],
             'image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
     }
