@@ -61,6 +61,7 @@ class SocialAuthenticationTest extends TestCase
             'error_reason' => 'user_denied',
             'error_description' => 'The user denied your request.',
         ]));
+        
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('social_error', function (string $message) {
